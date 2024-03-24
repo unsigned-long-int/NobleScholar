@@ -36,6 +36,4 @@ class CrossRefHandler:
                     error_name))
 
     def fetch_metadata(self):
-        try:
-            requests.get(self._url)
-
+        requests.get(self._url)
