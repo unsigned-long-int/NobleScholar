@@ -1,4 +1,4 @@
-from api.api_handler import CrossRefHandler 
+from cross_ref_api.api_handler import CrossRefHandler 
 
 
 if __name__ == '__main__':
