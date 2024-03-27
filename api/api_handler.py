@@ -9,9 +9,13 @@ from . import api_validator
 class NotValidUrl(Exception):
     pass
 
+class FailedAPIRequest(Exception):
+    pass
+
 class UrlException(Enum):
     INVALID_USER_MAIL = 'Invalid user mail'
     INVALID_ENDPOINT = 'Invalid endpoint'
+    NETWORK_ERROR = 'Failed API request'
 
 @dataclass(slots=True)
 class CrossRefHandler:
@@ -38,6 +42,11 @@ class CrossRefHandler:
 
     
     def fetch_metadata(self):
-        text = requests.get(f'{self._url}{self._payload}')
-        return text.text
+        response = requests.get(f'{self._url}{self._payload}')
+        error_flag = not (error_message:=response.status_code) == 200
+        if error_flag:
+            raise FailedAPIRequest('Exception: {}. ErrorMessage: {}'.format(
+                UrlException.NETWORK_ERROR.value, 
+                f'API response:{error_message}'))
+        return response.text
 
