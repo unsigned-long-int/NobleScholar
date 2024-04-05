@@ -16,6 +16,7 @@ class StreamType(Enum):
     DOC = auto()
     PDF = auto()
     PPT = auto()
+    TXT = auto()
 
 class StreamReader(ABC):
     """ Reader interface responsible for reading stream and fetching DocExtractor instances
@@ -40,6 +41,7 @@ class StreamReaderBulk(StreamReader):
         Responsible for bulk reading streams. 
         Attributes: (see StreamReader) 
     """
+    __slots__ = ()
     @singledispatchmethod
     def fetch_doi_extractor(self, stream_type):
         raise NotImplementedError
@@ -59,11 +61,17 @@ class StreamReaderBulk(StreamReader):
         data = read_ppt(self.stream_address)
         self._doi_extractors.append(DoiExtractor(data_chunk=data))
 
+    @fetch_doi_extractor.register
+    def _(self, stream_type: StreamType.TXT):
+        data = read_txt(self.stream_address)
+        self._doi_extractors.append(DoiExtractor(data_chunk=data))
+
 class StreamReaderGen(StreamReader):
     """ Polymorphic implementation inheriting from StreamReader interface. 
         Responsible for sequential generator reading streams. 
         Attributes: (see StreamReader) 
     """
+    __slots__ = ()
     @singledispatchmethod
     def fetch_doi_extractor(self, stream_type):
         raise NotImplementedError
