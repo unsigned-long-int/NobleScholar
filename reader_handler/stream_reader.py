@@ -6,6 +6,13 @@ from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum, auto
 
 from ..doi_extractor import DoiExtractor
+from .content_streamer_bulk import (
+    read_doc, 
+    read_pdf, 
+    read_ppt, 
+    read_txt
+    )
+from .binary_streamer_gen import read_file
 
 config = ConfigParser(interpolation=ExtendedInterpolation())
 config.read('./config/config.ini')
@@ -17,6 +24,9 @@ class StreamType(Enum):
     PDF = auto()
     PPT = auto()
     TXT = auto()
+
+class FileNotReadable(Exception):
+    pass
 
 class StreamReader(ABC):
     """ Reader interface responsible for reading stream and fetching DocExtractor instances
@@ -77,16 +87,9 @@ class StreamReaderGen(StreamReader):
         raise NotImplementedError
     
     @fetch_doi_extractor.register 
-    def _(self, stream_type: StreamType.DOC):
-        pass 
+    def _(self, stream_type: StreamType.DOC | StreamType.PDF | StreamType.PPT | StreamType.TXT):
+        self._doi_extractors = [DoiExtractor(data_chunk=data) for data in read_file(self.stream_address)]
 
-    @fetch_doi_extractor.register
-    def _(self, stream_type: StreamType.PDF):
-        pass 
-
-    @fetch_doi_extractor.register 
-    def _(self, stream_type: StreamType.PPT):
-        pass
 
 
 @dataclass(slots=True)
