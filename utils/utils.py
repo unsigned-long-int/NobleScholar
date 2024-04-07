@@ -14,3 +14,6 @@ def fetch_url() -> str:
 
 def fetch_payload() -> str:
     return os.getenv('user_mail')
+
+def fetch_extension(file_address):
+    return os.path.splitext(file_address)[1]

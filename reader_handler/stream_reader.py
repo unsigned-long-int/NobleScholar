@@ -5,6 +5,7 @@ from typing import ClassVar
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum, auto
 
+
 from ..doi_extractor import DoiExtractor
 from .content_streamer_bulk import (
     read_doc, 
@@ -13,6 +14,7 @@ from .content_streamer_bulk import (
     read_txt
     )
 from .binary_streamer_gen import read_file
+import stream_validator
 
 config = ConfigParser(interpolation=ExtendedInterpolation())
 config.read('./config/config.ini')
@@ -20,12 +22,18 @@ config.read('./config/config.ini')
 class StreamType(Enum):
     """ Types of data streams supported
     """
-    DOC = auto()
-    PDF = auto()
-    PPT = auto()
-    TXT = auto()
+    DOC = ('doc', 'docx')
+    PDF = ('pdf',)
+    PPT = ('ppt', 'pptx')
+    TXT = ('txt',)
 
-class FileNotReadable(Exception):
+class StreamExceptions(Enum):
+    """ Stream exceptions
+    """
+    INVALID_EXTENSION = 'Extension is not valid.'
+    MISSING_FILE = 'File is missing.'
+
+class InvalidStream(Exception):
     pass
 
 class StreamReader(ABC):
@@ -37,6 +45,20 @@ class StreamReader(ABC):
     def __init__(self, stream_address):
         self.stream_address: str = stream_address
         self._doi_extractors: list[DoiExtractor] = []
+        self._validate_stream()
+
+    def _validate_stream(self):
+        validation_functions = (
+            (StreamExceptions.INVALID_EXTENSION, lambda stream_address: stream_validator.validate_extension(stream_address)),
+            (StreamExceptions.MISSING_FILE, lambda stream_address: stream_validator.validate_availability(stream_address))
+            )
+        for exception, validation_func in validation_functions:
+            error_flag, error_message = validation_func(self.stream_address)
+            if error_flag:
+                raise InvalidStream('Exception: {}. ErrorMessage: {}'.format(
+                    exception.value, 
+                    error_message))
+
 
     @abstractmethod
     def fetch_doi_extractor(self, stream_type):
@@ -89,8 +111,6 @@ class StreamReaderGen(StreamReader):
     @fetch_doi_extractor.register 
     def _(self, stream_type: StreamType.DOC | StreamType.PDF | StreamType.PPT | StreamType.TXT):
         self._doi_extractors = [DoiExtractor(data_chunk=data) for data in read_file(self.stream_address)]
-
-
 
 @dataclass(slots=True)
 class StreamManager:
