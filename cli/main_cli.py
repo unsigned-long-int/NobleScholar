@@ -35,9 +35,9 @@ class ArgsInterface(ABC):
     def fetch_action(self):
         raise NotImplementedError
 
-    @abstractmethod
     def process_args(self):
-        raise NotImplementedError
+        action_ptr = self.fetch_action()
+        action_ptr(**self.__dict__)
 
 
 class FileArgsHandler(ArgsInterface):
@@ -54,10 +54,6 @@ class FileArgsHandler(ArgsInterface):
         if self.validate_file:
             return validate_file
 
-    def process_args(self):
-        action_ptr = self.fetch_action()
-        action_ptr(self.file_name)
-
 class DoiArgsHandler(ArgsInterface):
     def __init__(self, doi_list, validate_doi, **kwargs):
         self.doi_list = doi_list 
@@ -71,10 +67,6 @@ class DoiArgsHandler(ArgsInterface):
     def fetch_action(self):
         if self.validate_doi:
             return validate_doi
-
-    def process_args(self):
-        action_ptr = self.fetch_action()
-        action_ptr(self.dois)
 
 
 def main():
