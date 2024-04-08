@@ -1,5 +1,9 @@
 import argparse
 from abc import ABC, abstractmethod
+from configparser import ConfigParser, ExtendedInterpolation
+
+config = ConfigParser(interpolation=ExtendedInterpolation)
+config.read('./config/config.ini')
 
 class ActionTypeError(Exception):
     pass
@@ -74,7 +78,8 @@ class DoiArgsHandler(ArgsInterface):
 
 
 def main():
-    global_parser = argparse.ArgumentParser(prog='Noble Scholar', description='DOI manager and validator.')
+    global_parser = argparse.ArgumentParser(prog=config['PROJECT_META']['NAME'], description=config['PROJECT_META']['DESCRIPTION'])
+    global_parser.add_argument('--version', action='version', version=config['PROJECT_META']['VERSION'])
     subparsers = global_parser.add_subparsers(title='Actions', dest='command_type', description='set of possible actions', help='choose set of wanted actions')
     file_subparser = subparsers.add_parser(name='file-manager', description='these commands allow to work with file directly')
     file_subparser.add_argument('file_path', type=str, help='path to the file which will be extracted')
