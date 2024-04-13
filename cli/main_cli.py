@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from configparser import ConfigParser, ExtendedInterpolation
 
 from reader_handler import StreamManager
-from actions_handler import validate_dois
+from shared import validate_dois, extract_dois, validate_file
 
 config = ConfigParser(interpolation=ExtendedInterpolation())
 config.read('./config/config.ini')
