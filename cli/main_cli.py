@@ -6,7 +6,7 @@ from configparser import ConfigParser, ExtendedInterpolation
 
 from cross_ref_api import validate_dois
 
-config = ConfigParser(interpolation=ExtendedInterpolation)
+config = ConfigParser(interpolation=ExtendedInterpolation())
 config.read('./config/config.ini')
 
 class ActionTypeError(Exception):
@@ -35,13 +35,9 @@ class ArgsInterface(ABC):
     def __init__(self):
         self.process_args()
 
-    @abstractmethod
-    def fetch_action(self):
-        raise NotImplementedError
-
+    @abstractmethod 
     def process_args(self):
-        action_ptr = self.fetch_action()
-        action_ptr(self)
+        raise NotImplementedError
 
 
 class FileArgsHandler(ArgsInterface):
@@ -50,12 +46,16 @@ class FileArgsHandler(ArgsInterface):
         self.extract_doi = extract_doi
         self.validate_file = validate_file
 
-    def fetch_action(self):
+    def _fetch_action(self) -> Callable:
         if self.extract_doi:
             return extract_doi
 
         if self.validate_file:
             return validate_file
+        
+    def process_args(self):
+        action_ptr = self._fetch_action()
+        action_ptr(self.file_path)
 
 class DoiArgsHandler(ArgsInterface):
     def __init__(self, doi_list: str, validate_doi: bool, **kwargs):
@@ -66,13 +66,11 @@ class DoiArgsHandler(ArgsInterface):
     def _extract_dois(self) -> List[str]:
         return self.doi_list.split(',')
 
-    def fetch_action(self) -> Callable:
+    def process_args(self):
         if self.validate_doi:
-            return validate_dois
-        
+            validate_dois(self.dois)
 
-
-def main():
+def invoke_parser():
     global_parser = argparse.ArgumentParser(prog=config['PROJECT_META']['NAME'], description=config['PROJECT_META']['DESCRIPTION'])
     global_parser.add_argument('--version', action='version', version=config['PROJECT_META']['VERSION'])
     subparsers = global_parser.add_subparsers(title='Actions', dest='command_type', description='set of possible actions', help='choose set of wanted actions')
@@ -84,9 +82,6 @@ def main():
     doi_subparser = subparsers.add_parser(name="doi-manager", description='these commands allow to work with DOIs directly')
     doi_subparser.add_argument('doi_list', type=str, help='list of comma-separated DOIs')
     doi_subparser.add_argument('-vd', '--validate-doi', dest='validate_doi', action='store_true', help='validates all DOIs against retraction db')
-    args = global_parser.parse_args(['doi-manager', 'test', '-vd'])
+    args = global_parser.parse_args(['doi-manager', 'https://doi.org/10.1002/ppap.200700154, doi:10.1001/jama.1994.03520230061039', '-vd'])
     args_manager_instance = ArgsFactory(args=args)
-
-
-if __name__ == '__main__':
-    main()
+    return args_manager_instance

@@ -1,6 +1,5 @@
 import re
 
-from functools import singledispatchmethod
 from dataclasses import dataclass, field
 from typing import ClassVar, Pattern, List
 

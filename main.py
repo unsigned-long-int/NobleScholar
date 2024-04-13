@@ -1,6 +1,5 @@
-from cross_ref_api.api_handler import CrossRefHandler 
-
+from cli import invoke_parser
 
 if __name__ == '__main__':
-    api_instance = CrossRefHandler()
-    print(api_instance.fetch_metadata())
+    test_instance = invoke_parser()
+    test_instance.process_args()

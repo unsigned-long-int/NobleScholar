@@ -1,12 +1,12 @@
 import requests 
 
 from functools import singledispatch
-from typing import Dict, List, Any
+from typing import Dict, List
 from enum import Enum
 from dataclasses import dataclass, field
 
 from utils import utils
-from ..doi_extractor import DoiExtractor
+from doi_extractor import DoiExtractor
 from . import api_validator
 
 class NotValidUrl(Exception):
@@ -45,7 +45,7 @@ class CrossRefHandler:
 
     
     def fetch_metadata(self, filter_payload: Dict) -> str:
-        response = requests.get(f'{self._url}{self._payload}', params=filter_payload)
+        response = requests.get(f'{self._url}?mailto={self._payload}', params=filter_payload)
         error_flag = not (error_message:=response.status_code) == 200
         if error_flag:
             raise FailedAPIRequest('Exception: {}. ErrorMessage: {}'.format(
@@ -61,20 +61,12 @@ class CrossRefHandler:
                 UrlException.NETWORK_ERROR.value, 
                 f'API response:{error_message}'))
         return response.text
-    
-@singledispatch
-def validate_dois(requester_interface: Any):
-    raise NotImplementedError(f'validate_dois does not implement {type(requester_interface)}')
 
-@validate_dois.register
-def _(requester_interface: 'DoiArgsHandler'):
-    doi_extractor = DoiExtractor(requester_interface.dois)
+
+
+def validate_dois(dois: List | str):
+    doi_extractor = DoiExtractor(dois)
     cross_ref_api_instance = CrossRefHandler()
     response_map = {doi: cross_ref_api_instance.fetch_single_work(doi) for doi in doi_extractor.dois}
-    return response_map
-
-@validate_dois.register
-def _(requester_interface: 'DoiWebHandler'):
-    cross_ref_api_instance = CrossRefHandler()
-    response_map = {}
+    print(response_map)
     return response_map
