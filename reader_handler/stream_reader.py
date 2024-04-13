@@ -3,7 +3,7 @@ import os
 from functools import singledispatchmethod
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import ClassVar, Any
 from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum, auto
 
@@ -63,26 +63,26 @@ class StreamReaderBulk(StreamReader):
     """
     __slots__ = ()
     @singledispatchmethod
-    def fetch_doi_extractors(self, stream_type):
+    def fetch_doi_extractors(self, stream_type: Any):
         raise NotImplementedError
     
-    @fetch_doi_extractors.register 
-    def _(self, stream_type: StreamType.DOC):
+    @fetch_doi_extractors.register(StreamType.DOC)
+    def fetch_doi_extractors_doc(self, stream_type):
         data = read_doc(self.stream_address)
         self._doi_extractors.append(DoiExtractor(data_chunk=data))
 
-    @fetch_doi_extractors.register
-    def _(self, stream_type: StreamType.PDF):
+    @fetch_doi_extractors.register(StreamType.PDF)
+    def fetch_doi_extractors_pdf(self, stream_type):
         data = read_pdf(self.stream_address)
         self._doi_extractors.append(DoiExtractor(data_chunk=data))
 
-    @fetch_doi_extractors.register 
-    def _(self, stream_type: StreamType.PPT):
+    @fetch_doi_extractors.register(StreamType.PPT)
+    def fetch_doi_extractors_ppt(self, stream_type):
         data = read_ppt(self.stream_address)
         self._doi_extractors.append(DoiExtractor(data_chunk=data))
 
-    @fetch_doi_extractors.register
-    def _(self, stream_type: StreamType.TXT):
+    @fetch_doi_extractors.register(StreamType.TXT)
+    def fetch_doi_extractors_txt(self, stream_type):
         data = read_txt(self.stream_address)
         self._doi_extractors.append(DoiExtractor(data_chunk=data))
 
@@ -92,12 +92,8 @@ class StreamReaderGen(StreamReader):
         Attributes: (see StreamReader) 
     """
     __slots__ = ()
-    @singledispatchmethod
-    def fetch_doi_extractors(self, stream_type):
-        raise NotImplementedError
     
-    @fetch_doi_extractors.register 
-    def _(self, stream_type: StreamType.DOC | StreamType.PDF | StreamType.PPT | StreamType.TXT):
+    def fetch_doi_extractors(self, stream_type: StreamType.DOC | StreamType.PDF | StreamType.PPT | StreamType.TXT):
         self._doi_extractors = [DoiExtractor(data_chunk=data) for data in read_file(self.stream_address)]
 
 @dataclass(slots=True)
