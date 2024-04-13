@@ -6,6 +6,9 @@ from cross_ref_api import CrossRefHandler
 def validate_dois(dois: List | str):
     doi_extractor = DoiExtractor(dois)
     cross_ref_api_instance = CrossRefHandler()
-    response_map = {doi: cross_ref_api_instance.fetch_single_work(doi) for doi in doi_extractor.dois}
+    response_map = {doi: cross_ref_api_instance.fetch_single_work(doi)['message']['update-to'] for doi in doi_extractor.dois}
     print(response_map)
     return response_map
+
+
+def extract_dois(stream: 'StreamManager'):

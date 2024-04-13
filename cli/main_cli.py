@@ -4,6 +4,7 @@ from typing import List, Callable
 from abc import ABC, abstractmethod
 from configparser import ConfigParser, ExtendedInterpolation
 
+from reader_handler import StreamManager
 from actions_handler import validate_dois
 
 config = ConfigParser(interpolation=ExtendedInterpolation())
@@ -56,7 +57,8 @@ class FileArgsHandler(ArgsInterface):
         
     def process_args(self):
         action_ptr = self._fetch_action()
-        action_ptr(self.file_path)
+        stream = StreamManager(stream_address=self.file_path)
+        action_ptr(stream.stream_reader_instance)
 
 class DoiArgsHandler(ArgsInterface):
     def __init__(self, doi_list: str, validate_doi: bool, **kwargs):
@@ -68,7 +70,6 @@ class DoiArgsHandler(ArgsInterface):
         return self.doi_list.split(',')
 
     def process_args(self):
-        print(self.__dict__)
         if self.validate_doi:
             validate_dois(self.dois)
 
@@ -84,6 +85,6 @@ def invoke_parser():
     doi_subparser = subparsers.add_parser(name="doi-manager", description='these commands allow to work with DOIs directly')
     doi_subparser.add_argument('doi_list', type=str, help='list of comma-separated DOIs')
     doi_subparser.add_argument('-vd', '--validate-doi', dest='validate_doi', action='store_true', help='validates all DOIs against retraction db')
-    args = global_parser.parse_args(['doi-manager', 'https://doi.org/10.1002/ppap.200700154, doi:10.1001/jama.1994.03520230061039', '-vd'])
+    args = global_parser.parse_args(['doi-manager', 'https://doi.org/10.1007/s11767-005-0155-1', '-vd'])
     args_manager_instance = ArgsFactory(args=args)
     return args_manager_instance

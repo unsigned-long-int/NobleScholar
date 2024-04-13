@@ -49,7 +49,7 @@ class CrossRefHandler:
             raise FailedAPIRequest('Exception: {}. ErrorMessage: {}'.format(
                 UrlException.NETWORK_ERROR.value, 
                 f'API response:{error_message}'))
-        return response.text
+        return response.json()
 
     def fetch_single_work(self, doi: str) -> str:
         response = requests.get(f'{self._url}/{doi}')
@@ -58,4 +58,4 @@ class CrossRefHandler:
             raise FailedAPIRequest('Exception: {}. ErrorMessage: {}'.format(
                 UrlException.NETWORK_ERROR.value, 
                 f'API response:{error_message}'))
-        return response.text
+        return response.json()
