@@ -1,1 +1,1 @@
-from .api_handler import validate_dois
+from .api_handler import CrossRefHandler

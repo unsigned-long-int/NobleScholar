@@ -1,12 +1,10 @@
 import requests 
 
-from functools import singledispatch
-from typing import Dict, List
+from typing import Dict
 from enum import Enum
 from dataclasses import dataclass, field
 
 from utils import utils
-from doi_extractor import DoiExtractor
 from . import api_validator
 
 class NotValidUrl(Exception):
@@ -61,12 +59,3 @@ class CrossRefHandler:
                 UrlException.NETWORK_ERROR.value, 
                 f'API response:{error_message}'))
         return response.text
-
-
-
-def validate_dois(dois: List | str):
-    doi_extractor = DoiExtractor(dois)
-    cross_ref_api_instance = CrossRefHandler()
-    response_map = {doi: cross_ref_api_instance.fetch_single_work(doi) for doi in doi_extractor.dois}
-    print(response_map)
-    return response_map

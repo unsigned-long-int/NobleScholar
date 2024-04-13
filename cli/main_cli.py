@@ -4,7 +4,7 @@ from typing import List, Callable
 from abc import ABC, abstractmethod
 from configparser import ConfigParser, ExtendedInterpolation
 
-from cross_ref_api import validate_dois
+from actions_handler import validate_dois
 
 config = ConfigParser(interpolation=ExtendedInterpolation())
 config.read('./config/config.ini')
@@ -29,6 +29,7 @@ class ArgsFactory:
         raise ActionTypeError(f'Missing action: {self.args.command_type}.')
     
     def process_args(self):
+        print('processing args')
         self.args_instance.process_args()
 
 class ArgsInterface(ABC):
@@ -67,6 +68,7 @@ class DoiArgsHandler(ArgsInterface):
         return self.doi_list.split(',')
 
     def process_args(self):
+        print(self.__dict__)
         if self.validate_doi:
             validate_dois(self.dois)
 
