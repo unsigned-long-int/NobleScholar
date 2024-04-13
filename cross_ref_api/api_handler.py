@@ -1,9 +1,12 @@
 import requests 
 
+from functools import singledispatch
+from typing import Dict, List, Any
 from enum import Enum
 from dataclasses import dataclass, field
 
 from utils import utils
+from ..doi_extractor import DoiExtractor
 from . import api_validator
 
 class NotValidUrl(Exception):
@@ -24,10 +27,10 @@ class CrossRefHandler:
     _url: str = field(default_factory=utils.fetch_url, init=False, repr=False)
     _payload: str  = field(default_factory=utils.fetch_payload, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._validate_url()
 
-    def _validate_url(self):
+    def _validate_url(self) -> None:
         validation_functions = (
             (UrlException.INVALID_USER_MAIL, lambda api_instance: api_validator.validate_user_mail(api_instance)),
             (UrlException.INVALID_ENDPOINT, lambda api_instance: api_validator.validate_endpoint(api_instance))
@@ -41,8 +44,8 @@ class CrossRefHandler:
                     error_message))
 
     
-    def fetch_metadata(self):
-        response = requests.get(f'{self._url}{self._payload}')
+    def fetch_metadata(self, filter_payload: Dict) -> str:
+        response = requests.get(f'{self._url}{self._payload}', params=filter_payload)
         error_flag = not (error_message:=response.status_code) == 200
         if error_flag:
             raise FailedAPIRequest('Exception: {}. ErrorMessage: {}'.format(
@@ -50,3 +53,28 @@ class CrossRefHandler:
                 f'API response:{error_message}'))
         return response.text
 
+    def fetch_single_work(self, doi: str) -> str:
+        response = requests.get(f'{self._url}/{doi}')
+        error_flag = not (error_message:=response.status_code) == 200
+        if error_flag:
+            raise FailedAPIRequest('Exception: {}. ErrorMessage: {}'.format(
+                UrlException.NETWORK_ERROR.value, 
+                f'API response:{error_message}'))
+        return response.text
+    
+@singledispatch
+def validate_dois(requester_interface: Any):
+    raise NotImplementedError(f'validate_dois does not implement {type(requester_interface)}')
+
+@validate_dois.register
+def _(requester_interface: 'DoiArgsHandler'):
+    doi_extractor = DoiExtractor(requester_interface.dois)
+    cross_ref_api_instance = CrossRefHandler()
+    response_map = {doi: cross_ref_api_instance.fetch_single_work(doi) for doi in doi_extractor.dois}
+    return response_map
+
+@validate_dois.register
+def _(requester_interface: 'DoiWebHandler'):
+    cross_ref_api_instance = CrossRefHandler()
+    response_map = {}
+    return response_map

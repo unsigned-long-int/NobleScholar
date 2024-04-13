@@ -1,6 +1,10 @@
 import argparse
+
+from typing import List, Callable
 from abc import ABC, abstractmethod
 from configparser import ConfigParser, ExtendedInterpolation
+
+from cross_ref_api import validate_dois
 
 config = ConfigParser(interpolation=ExtendedInterpolation)
 config.read('./config/config.ini')
@@ -10,7 +14,7 @@ class ActionTypeError(Exception):
 
 class ArgsFactory:
     """ Handles assignment of correct polymorphic class instance depending on the type of actions
-        Attributes: args() : argument NameSpace from argsparser
+        Attributes: args(argparse.Namespace) : argument NameSpace from argsparser
     """
     def __init__(self, args):
         self.args = args 
@@ -20,7 +24,7 @@ class ArgsFactory:
     def _fetch_action_manager(self):
         if self.args.command_type == 'file-manager':
             return FileArgsHandler
-        if self.args.command_type = 'doi-manager':
+        if self.args.command_type == 'doi-manager':
             return DoiArgsHandler
         raise ActionTypeError(f'Missing action: {self.args.command_type}.')
     
@@ -37,7 +41,7 @@ class ArgsInterface(ABC):
 
     def process_args(self):
         action_ptr = self.fetch_action()
-        action_ptr(**self.__dict__)
+        action_ptr(self)
 
 
 class FileArgsHandler(ArgsInterface):
@@ -45,7 +49,6 @@ class FileArgsHandler(ArgsInterface):
         self.file_path = file_path
         self.extract_doi = extract_doi
         self.validate_file = validate_file
-        #super().__init__()
 
     def fetch_action(self):
         if self.extract_doi:
@@ -55,18 +58,18 @@ class FileArgsHandler(ArgsInterface):
             return validate_file
 
 class DoiArgsHandler(ArgsInterface):
-    def __init__(self, doi_list, validate_doi, **kwargs):
+    def __init__(self, doi_list: str, validate_doi: bool, **kwargs):
         self.doi_list = doi_list 
         self.validate_doi = validate_doi
         self.dois = self._extract_dois()
-        #super().__init__()
 
-    def _extract_dois(self):
+    def _extract_dois(self) -> List[str]:
         return self.doi_list.split(',')
 
-    def fetch_action(self):
+    def fetch_action(self) -> Callable:
         if self.validate_doi:
-            return validate_doi
+            return validate_dois
+        
 
 
 def main():
@@ -83,7 +86,6 @@ def main():
     doi_subparser.add_argument('-vd', '--validate-doi', dest='validate_doi', action='store_true', help='validates all DOIs against retraction db')
     args = global_parser.parse_args(['doi-manager', 'test', '-vd'])
     args_manager_instance = ArgsFactory(args=args)
-    print(args_manager_instance)
 
 
 if __name__ == '__main__':
