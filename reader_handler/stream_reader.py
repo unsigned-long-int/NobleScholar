@@ -24,10 +24,10 @@ config.read('./config/config.ini')
 class StreamType(Enum):
     """ Types of data streams supported
     """
-    DOC = ('doc', 'docx')
-    PDF = ('pdf',)
-    PPT = ('ppt', 'pptx')
-    TXT = ('txt',)
+    DOC = auto()
+    PDF = auto()
+    PPT = auto()
+    TXT = auto()
 
 class StreamExceptions(Enum):
     """ Stream exceptions
@@ -92,7 +92,7 @@ class StreamReaderGen(StreamReader):
         Attributes: (see StreamReader) 
     """
     __slots__ = ()
-    
+
     def fetch_doi_extractors(self, stream_type: StreamType.DOC | StreamType.PDF | StreamType.PPT | StreamType.TXT):
         self._doi_extractors = [DoiExtractor(data_chunk=data) for data in read_file(self.stream_address)]
 

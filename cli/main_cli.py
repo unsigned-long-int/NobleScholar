@@ -57,8 +57,8 @@ class FileArgsHandler(ArgsInterface):
         
     def process_args(self):
         action_ptr = self._fetch_action()
-        stream = StreamManager(stream_address=self.file_path)
-        action_ptr(stream.stream_reader_instance)
+        stream_manager = StreamManager(stream_address=self.file_path)
+        action_ptr(stream_manager.stream_reader_instance)
 
 class DoiArgsHandler(ArgsInterface):
     def __init__(self, doi_list: str, validate_doi: bool, **kwargs):
