@@ -50,7 +50,7 @@ class FileArgsHandler(ArgsInterface):
 
     def _fetch_action(self) -> Callable:
         if self.extract_doi:
-            return extract_doi
+            return extract_dois
 
         if self.validate_file:
             return validate_file

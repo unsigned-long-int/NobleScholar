@@ -8,15 +8,8 @@ from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum, auto
 
 
-from ..doi_extractor import DoiExtractor
-from .content_streamer_bulk import (
-    read_doc, 
-    read_pdf, 
-    read_ppt, 
-    read_txt
-    )
-from .binary_streamer_gen import read_file
-import stream_validator
+from doi_extractor import DoiExtractor
+from .file import File
 
 config = ConfigParser(interpolation=ExtendedInterpolation())
 config.read('./config/config.ini')
@@ -40,16 +33,16 @@ class InvalidStream(Exception):
 
 class StreamReader(ABC):
     """ Reader interface responsible for reading stream and fetching DocExtractor instances
-        Attributes: stream_address: str - address of the file endpoint for which doc extractors should be fetched
+        Attributes: file: File - file object
                     _doi_extractors: list[DoiExtractor] - list of doc extractors 
     """
-    __slots__ = ('stream_address', '_doi_extractors')
-    def __init__(self, stream_address):
-        self.stream_address: str = stream_address
+    __slots__ = ('file', '_doi_extractors')
+    def __init__(self, file: File):
+        self.file: File = file
         self._doi_extractors: list[DoiExtractor] = []
 
     @abstractmethod
-    def fetch_doi_extractors(self, stream_type):
+    def fetch_doi_extractors(self, file: File):
         raise NotImplementedError
     
     @property 
@@ -62,28 +55,9 @@ class StreamReaderBulk(StreamReader):
         Attributes: (see StreamReader) 
     """
     __slots__ = ()
-    @singledispatchmethod
-    def fetch_doi_extractors(self, stream_type: Any):
-        raise NotImplementedError
-    
-    @fetch_doi_extractors.register(StreamType.DOC)
-    def fetch_doi_extractors_doc(self, stream_type):
-        data = read_doc(self.stream_address)
-        self._doi_extractors.append(DoiExtractor(data_chunk=data))
 
-    @fetch_doi_extractors.register(StreamType.PDF)
-    def fetch_doi_extractors_pdf(self, stream_type):
-        data = read_pdf(self.stream_address)
-        self._doi_extractors.append(DoiExtractor(data_chunk=data))
-
-    @fetch_doi_extractors.register(StreamType.PPT)
-    def fetch_doi_extractors_ppt(self, stream_type):
-        data = read_ppt(self.stream_address)
-        self._doi_extractors.append(DoiExtractor(data_chunk=data))
-
-    @fetch_doi_extractors.register(StreamType.TXT)
-    def fetch_doi_extractors_txt(self, stream_type):
-        data = read_txt(self.stream_address)
+    def fetch_doi_extractors(self):
+        data = self.file.read_file()
         self._doi_extractors.append(DoiExtractor(data_chunk=data))
 
 class StreamReaderGen(StreamReader):
@@ -93,36 +67,23 @@ class StreamReaderGen(StreamReader):
     """
     __slots__ = ()
 
-    def fetch_doi_extractors(self, stream_type: StreamType.DOC | StreamType.PDF | StreamType.PPT | StreamType.TXT):
-        self._doi_extractors = [DoiExtractor(data_chunk=data) for data in read_file(self.stream_address)]
+    def fetch_doi_extractors(self):
+        self._doi_extractors = [DoiExtractor(data_chunk=data) for data in self.file.gen_read_binary()]
 
 @dataclass(slots=True)
 class StreamManager:
     max_chunk_size: ClassVar[int] = config['READER']['MAX_CHUNK_SIZE']
-    stream_address: str
+    file: File
     _stream_size: int = field(default=None, repr=False, init=False)
     stream_reader_instance: StreamReaderGen | StreamReaderBulk = field(default=None)
 
     def __post_init__(self):
-        self._validate_stream()
         self._stream_size = self._fetch_stream_size()
         stream_reader_ptr = self._fetch_stream_reader()
-        self.stream_reader_instance = stream_reader_ptr(self.stream_address)
-
-    def _validate_stream(self):
-        validation_functions = (
-            (StreamExceptions.INVALID_EXTENSION, lambda stream_address: stream_validator.validate_extension(stream_address)),
-            (StreamExceptions.MISSING_FILE, lambda stream_address: stream_validator.validate_availability(stream_address))
-            )
-        for exception, validation_func in validation_functions:
-            error_flag, error_message = validation_func(self.stream_address)
-            if error_flag:
-                raise InvalidStream('Exception: {}. ErrorMessage: {}'.format(
-                    exception.value, 
-                    error_message))
+        self.stream_reader_instance = stream_reader_ptr(self.file)
             
     def _fetch_stream_size(self):
-        return os.path.getsize(self.stream_address)
+        return os.path.getsize(self.file.file_address)
         
     def _fetch_stream_reader(self):
         if self._stream_size > StreamManager.max_chunk_size:

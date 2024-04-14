@@ -1,11 +1,9 @@
 import os 
-import sys
 
 from collections import namedtuple
 from configparser import ConfigParser, ExtendedInterpolation
 
-from ..utils import fetch_extension
-from .stream_reader import StreamType
+from utils import fetch_extension
 
 config = ConfigParser(interpolation=ExtendedInterpolation())
 config.read('./config/config.ini')
